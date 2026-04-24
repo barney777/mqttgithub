@@ -1,34 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>MQTT 測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT 傳送測試 (Web)</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background-color: #f0f2f5; }
+        .card { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; color: #1a73e8; font-size: 20px; }
+        #status { font-weight: bold; margin-bottom: 15px; padding: 8px; border-radius: 6px; display: inline-block; }
+        .offline { background: #ffebee; color: #d93025; }
+        .online { background: #e6f4ea; color: #188038; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        button:active { background: #174ea6; }
+        #log { margin-top: 20px; background: #202124; color: #00ff00; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; height: 120px; overflow-y: auto; }
+    </style>
 </head>
-<body style="padding:20px; font-family:sans-serif;">
-    <h2>MQTT 傳送器 (Web)</h2>
-    <div id="status" style="color:red;">連線中...</div>
-    <input type="text" id="msg" value="Hello APP!" style="width:200px; padding:10px; margin:10px 0;">
-    <br>
-    <button onclick="send()" style="padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px;">發送訊息</button>
-    <div id="log" style="margin-top:20px; font-size:12px; color:#666;"></div>
+<body>
 
-    <script>
-        const log = (m) => document.getElementById('log').innerHTML += m + '<br>';
-        // 使用更穩定的伺服器與路徑
-        const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+<div class="card">
+    <h2>MQTT Web Controller</h2>
+    <div id="status" class="offline">連線狀態：嘗試連線中...</div>
+    
+    <label style="font-size: 14px; color: #666;">傳送主題 (Topic):</label>
+    <input type="text" id="topicInput" value="test/device/1">
+    
+    <label style="font-size: 14px; color: #666;">訊息內容 (Message):</label>
+    <input type="text" id="messageInput" value="Hello Android!">
+    
+    <button onclick="publishMessage()">發送訊息給手機</button>
 
-        client.on('connect', () => {
-            document.getElementById('status').innerText = '✅ 已連線 (EMQX)';
-            document.getElementById('status').style.color = 'green';
-            log('連線成功');
-        });
+    <div id="log">系統日誌：<br></div>
+</div>
 
-        function send() {
-            const m = document.getElementById('msg').value;
-            client.publish('test/device/1', m);
-            log('已發送: ' + m);
-        }
-    </script>
-</body>
-</html>
+<script>
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+
+    function writeLog(msg) {
+        const now = new Date().toLocaleTimeString();
+        logEl.innerHTML += `[${now}] ${msg}<br>`;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // --- MQTT 設定 ---
+    // 伺服器：EMQX 公共伺服器 (WebSocket 加密埠)
+    const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+    
+    const options = {
+        keep
